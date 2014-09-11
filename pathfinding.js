@@ -5,6 +5,7 @@ var Pathfinding = function()
 	this._pCurrent = {x:0, y:0, z:0};
 	this._pGoal = {x:0, y:0, z:0};
 	this._currentAlgorithmFn = null;
+	this._status = Pathfinding.NOT_RUNNING;
 };
 
 Pathfinding.SPACE = 0;
@@ -12,6 +13,11 @@ Pathfinding.OBSTACLE = 1;
 Pathfinding.START = 2;
 Pathfinding.GOAL = 3;
 Pathfinding.CHECKED = 4;
+
+Pathfinding.NOT_RUNNING = 0;
+Pathfinding.SEARCHING = 1;
+Pathfinding.NOT_FOUND = 2;
+Pathfinding.FOUND = 3;
 
 Pathfinding._algorithms = [];
 
@@ -61,29 +67,63 @@ Pathfinding.prototype.fnLoadAlgorithm = function(name)
 	console.debug("Pathfinding: Algorithm '" + name + "' is now loaded");
 }
 
-Pathfinding.prototype.fnTick = function()
+Pathfinding.prototype.fnInitSearch = function()
 {
 	if(this._currentAlgorithmFn)
 	{
-		this._currentAlgorithmFn.tick(this);
+		this._currentAlgorithmFn.init(this);
+		this._status = Pathfinding.SEARCHING;
+		return;
 	}
+	this._status = Pathfinding.NOT_RUNNING;
+}
+
+Pathfinding.prototype.fnTick = function()
+{
+	if(this._currentAlgorithmFn && this._status == Pathfinding.SEARCHING)
+	{
+		this._status = this._currentAlgorithmFn.tick(this);
+		if(status == Pathfinding.FOUND)
+		{
+			var path = this._currentAlgorithmFn.path();
+			return { status:this._status, path:path };
+		}
+		return { status:this._status };
+	}
+	
+	this._status = Pathfinding.NOT_RUNNING;
+	return { status:this._status };
 }
 
 Pathfinding.prototype.neighbors = function(p, graph)
 {
 	var n = [];
-	for(var x = p.x - 1 >= 0 ? p.x - 1 : 0; x <= p.x + 1 && x < graph.length; ++x)
+	
+	var nSearches = [
+		{x:-1, y:0, z:0},
+		{x:1, y:0, z:0},
+		
+		{x:0, y:-1, z:0},
+		{x:0, y:1, z:0},
+		
+		{x:0, y:0, z:-1},
+		{x:0, y:0, z:1}
+	];
+	
+	for(var i = 0; i < nSearches.length; ++i)
 	{
-		for(var y = p.y - 1 >= 0 ? p.y - 1 : 0; y <= p.y + 1 && y < graph[x].length; ++y)
-		{
-			for(var z = p.z - 1 >= 0 ? p.z - 1 : 0; z <= p.z + 1 && z < graph[x][y].length; ++z)
-			{
-				if(graph[x][y][z] != Pathfinding.OBSTACLE && x != p.x && y != p.y && z != p.z)
-				{
-					n.push({x:x, y:y, z:z});
-				}
-			}
-		}
+		var x = nSearches[i].x + p.x;
+		var y = nSearches[i].y + p.y;
+		var z = nSearches[i].z + p.z;
+		
+		if(x < 0 || x >= graph.length)
+			continue;
+		else if (y < 0 || y >= graph[x].length)
+			continue;
+		else if (z < 0 || z >= graph[x][y].length)
+			continue;
+		else if(graph[x][y][z] != Pathfinding.OBSTACLE && !(x == p.x && y == p.y && z == p.z))
+			n.push({x:x, y:y, z:z});
 	}
 	
 	return n;

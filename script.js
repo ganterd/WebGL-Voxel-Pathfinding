@@ -13,11 +13,11 @@ var _rSquare = 0.0;
 
 var _keysDown = {};
 
-var _cameraPos = {x: 0, y: 0, z:50.0};
+var _cameraPos = {x: 0, y: 0, z:70.0};
 
 var _space = [];
 var _spaceRot = { x:0, y:0, z:0 };
-var _spaceRotPerSecond = { x:0, y:0, z:0 };
+var _spaceRotPerSecond = { x:0, y:0.1, z:0 };
 
 var SPACE = Pathfinding.SPACE;
 var OBSTACLE = Pathfinding.OBSTACLE;
@@ -44,8 +44,9 @@ var init = function()
 var initSpace = function()
 {
 	_space = [];
-	generateSpace(30, 30, 30);
+	generateSpace(50, 50, 50);
 	pathfinding.fnLoadAlgorithm("a_star");
+	pathfinding.fnInitSearch();
 }
 
 var initCanvas = function()
@@ -211,8 +212,10 @@ function handleKeyUp(event)
 	_keysDown[event.keyCode] = false;
 }
 
-var cubeFaceBuffers = function(cubeSize)
+var cubeFaceBuffers = function(cubeSize, cubeColor)
 {
+	if(cubeColor == undefined)
+		cubeColor = [0.5, 0.5, 0.5, 1.0];
 	var size = cubeSize / 2;
 	var squareVertexPositionBuffer = _gl.createBuffer();
 	_gl.bindBuffer(_gl.ARRAY_BUFFER, squareVertexPositionBuffer);
@@ -249,7 +252,7 @@ var cubeFaceBuffers = function(cubeSize)
 	_gl.bindBuffer(_gl.ARRAY_BUFFER, squareVertexColorBuffer);
 	colors = []
 	for (var i=0; i < squareVertexPositionBuffer.numItems; i++) {
-		colors = colors.concat([0.5, 0.5, 0.5, 1.0]);
+		colors = colors.concat(cubeColor);
 	}
 	_gl.bufferData(_gl.ARRAY_BUFFER, new Float32Array(colors), _gl.STATIC_DRAW);
 	squareVertexColorBuffer.itemSize = 4;
@@ -410,13 +413,13 @@ function generateSpace(limitX, limitY, limitZ)
 	var limZ = Math.ceil(limitZ / 2);
 	
 	_space = [];
-	for(var x = -limX; x < limX; ++x)
+	for(var x = 0; x < limitX; ++x)
 	{
 		var spaceY = [];
-		for(var y = -limY; y < limY; ++y)
+		for(var y = 0; y < limitY; ++y)
 		{
 			var spaceZ = []
-			for(var z = -limZ; z < limZ; ++z)
+			for(var z = 0; z < limitZ; ++z)
 			{
 				if(Math.random() > 0.99)
 				{
@@ -459,9 +462,9 @@ function findEmptySpacePoint(limitX, limitY, limitZ)
 	var randZ;
 	do
 	{
-		randX = Math.round(Math.random() * limitX);
-		randY = Math.round(Math.random() * limitY);
-		randZ = Math.round(Math.random() * limitZ);
+		randX = Math.floor(Math.random() * limitX);
+		randY = Math.floor(Math.random() * limitY);
+		randZ = Math.floor(Math.random() * limitZ);
 	}while(_space[randX][randY][randZ] != SPACE);
 	
 	return { x:randX, y:randY, z:randZ };
@@ -472,7 +475,7 @@ var drawScene = function()
 	_gl.viewport(0, 0, _gl.viewportWidth, _gl.viewportHeight);
 	_gl.clear(_gl.COLOR_BUFFER_BIT | _gl.DEPTH_BUFFER_BIT);
 	
-	mat4.perspective(_pMatrix, 45, _gl.viewportWidth / _gl.viewportHeight, 0.1, 100.0);
+	mat4.perspective(_pMatrix, 45, _gl.viewportWidth / _gl.viewportHeight, 0.1, 1000.0);
 	mat4.identity(_mvMatrix);
 	mat4.translate(_mvMatrix, _mvMatrix, [-_cameraPos.x, -_cameraPos.y, -_cameraPos.z]);
 	
@@ -481,10 +484,11 @@ var drawScene = function()
 	mat4.rotateY(_mvMatrix, _mvMatrix, _spaceRot.y);
 	mat4.rotateZ(_mvMatrix, _mvMatrix, _spaceRot.z);
 	
-	var wireframeCubeBuffers = cubeFaceBuffers(1);
+	//var wireframeCubeBuffers = cubeFaceBuffers(1);
+	var wireframeCubeBuffers = initCubeBuffers(1, [0.5, 0.5, 0.5, 1.0]);
 	var startCubeBuffers = initStartCubeBuffers(1);
 	var goalCubeBuffers = initGoalCubeBuffers(1);
-	var checkedCubeBuffers = initCubeBuffers(0.5, [1, 1, 1, 1.0]);
+	var checkedCubeBuffers = cubeFaceBuffers(1, [1, 1, 1, 1.0])
 	
 	var offsetX = Math.ceil(_space.length /  2);
 	
@@ -527,7 +531,7 @@ var drawScene = function()
 						x:x - offsetX, 
 						y:y - offsetY, 
 						z:z - offsetZ
-					}, 0.5, checkedCubeBuffers);
+					}, 1, checkedCubeBuffers);
 				}
 			}
 		}
@@ -540,6 +544,14 @@ var tick = function()
 	requestAnimFrame(tick);
 	animate();
 	updateInput();
-	pathfinding.fnTick();
+	
+	if(pathfinding._status == Pathfinding.FOUND)
+	{
+	}
+	else
+	{
+		pathfinding.fnTick();
+	}
+	
 	drawScene();
 }
