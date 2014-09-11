@@ -16,6 +16,8 @@ var _keysDown = {};
 var _cameraPos = {x: 0, y: 0, z:70.0};
 
 var _space = [];
+var _spaceLimits = {x:50, y:50, z:50};
+var _spaceFillPercent = 2;
 var _spaceRot = { x:0, y:0, z:0 };
 var _spaceRotPerSecond = { x:0, y:0.1, z:0 };
 
@@ -44,7 +46,7 @@ var init = function()
 var initSpace = function()
 {
 	_space = [];
-	generateSpace(50, 50, 50);
+	generateSpace(_spaceLimits.x, _spaceLimits.y, _spaceLimits.z);
 	pathfinding.fnLoadAlgorithm("a_star");
 	pathfinding.fnInitSearch();
 }
@@ -421,7 +423,7 @@ function generateSpace(limitX, limitY, limitZ)
 			var spaceZ = []
 			for(var z = 0; z < limitZ; ++z)
 			{
-				if(Math.random() > 0.99)
+				if(Math.random() > (100 - _spaceFillPercent) / 100)
 				{
 					spaceZ.push(OBSTACLE);
 				}
