@@ -19,10 +19,12 @@ var _space = [];
 var _spaceRot = { x:0, y:0, z:0 };
 var _spaceRotPerSecond = { x:0, y:0, z:0 };
 
-var SPACE = 0;
-var OBSTACLE = 1;
-var START = 2;
-var GOAL = 3;
+var SPACE = Pathfinding.SPACE;
+var OBSTACLE = Pathfinding.OBSTACLE;
+var START = Pathfinding.START;
+var GOAL = Pathfinding.GOAL;
+
+var pathfinding = new Pathfinding();
 
 /* Startup funciton to set up the canvas */
 var main = function()
@@ -429,6 +431,8 @@ function generateSpace(limitX, limitY, limitZ)
 		_space.push(spaceY);
 	}
 	
+	pathfinding.fnSetGraph(_space);
+	
 	generateStartPoint(limitX, limitY, limitZ);
 	generateGoalPoint(limitX, limitY, limitZ);
 }
@@ -436,12 +440,14 @@ function generateSpace(limitX, limitY, limitZ)
 function generateStartPoint(limitX, limitY, limitZ)
 {
 	var p = findEmptySpacePoint(limitX, limitY, limitZ);
+	pathfinding.fnSetStartPosition(p);
 	_space[p.x][p.y][p.z] = START;
 }
 
 function generateGoalPoint(limitX, limitY, limitZ)
 {
 	var p = findEmptySpacePoint(limitX, limitY, limitZ);
+	pathfinding.fnSetGoalPosition(p);
 	_space[p.x][p.y][p.z] = GOAL;
 }
 
