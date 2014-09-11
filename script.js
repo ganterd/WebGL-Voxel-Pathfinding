@@ -19,6 +19,11 @@ var _space = [];
 var _spaceRot = { x:0, y:0, z:0 };
 var _spaceRotPerSecond = { x:0, y:0, z:0 };
 
+var SPACE = 0;
+var OBSTACLE = 1;
+var START = 2;
+var GOAL = 3;
+
 /* Startup funciton to set up the canvas */
 var main = function()
 {
@@ -253,16 +258,74 @@ var cubeFaceBuffers = function(cubeSize)
 	_gl.bindBuffer(_gl.ARRAY_BUFFER, squareVertexColorBuffer);
     _gl.vertexAttribPointer(_currentShaderProgram.vertexColorAttribute, squareVertexColorBuffer.itemSize, _gl.FLOAT, false, 0, 0);
 	
-	return { vBuffer: squareVertexPositionBuffer, cBuffer: squareVertexColorBuffer };
+	return { 
+		vBuffer: squareVertexPositionBuffer, 
+		cBuffer: squareVertexColorBuffer, 
+		primitive: _gl.LINE_STRIP 
+	};
 }
 
-var drawCube = function(cubePos, cubeSize, cubeFaceBuffers)
+var initStartCubeBuffers = function(cubeSize)
 {
-	_gl.bindBuffer(_gl.ARRAY_BUFFER, cubeFaceBuffers.vBuffer);
-	_gl.vertexAttribPointer(_currentShaderProgram.vertexPositionAttribute, cubeFaceBuffers.vBuffer.itemSize, _gl.FLOAT, false, 0, 0);
+	var size = cubeSize / 2;
+	var vBuffer = _gl.createBuffer();
+	_gl.bindBuffer(_gl.ARRAY_BUFFER, vBuffer);
+	vertices = [
+		size, size, size,
+		-size, size, size,
+		
+		size, -size, size,
+		-size, -size, size,
+		
+		-size, -size, -size,
+		-size, size, size,
+		
+		-size, size, -size,
+		size, size, size,
+		
+		size, size, -size,
+		size, -size, size,
+		
+		size, -size, -size,
+		-size, -size, -size,
+		
+		size, size, -size,
+		-size, size, -size
+		];
+	_gl.bufferData(_gl.ARRAY_BUFFER, new Float32Array(vertices), _gl.STATIC_DRAW);
+	vBuffer.itemSize = 3;
+	vBuffer.numItems = Math.round(vertices.length / 3);
+
+	cBuffer = _gl.createBuffer();
+	_gl.bindBuffer(_gl.ARRAY_BUFFER, cBuffer);
+	colors = []
+	for (var i=0; i < vBuffer.numItems; i++) {
+		colors = colors.concat([0.8, 0.8, 0.8, 1.0]);
+	}
+	_gl.bufferData(_gl.ARRAY_BUFFER, new Float32Array(colors), _gl.STATIC_DRAW);
+	cBuffer.itemSize = 4;
+	cBuffer.numItems = 4;
 	
-	_gl.bindBuffer(_gl.ARRAY_BUFFER, cubeFaceBuffers.cBuffer);
-	_gl.vertexAttribPointer(_currentShaderProgram.vertexColorAttribute, cubeFaceBuffers.cBuffer.itemSize, _gl.FLOAT, false, 0, 0);
+	_gl.bindBuffer(_gl.ARRAY_BUFFER, vBuffer);
+	_gl.vertexAttribPointer(_currentShaderProgram.vertexPositionAttribute, vBuffer.itemSize, _gl.FLOAT, false, 0, 0);
+	
+	_gl.bindBuffer(_gl.ARRAY_BUFFER, cBuffer);
+    _gl.vertexAttribPointer(_currentShaderProgram.vertexColorAttribute, cBuffer.itemSize, _gl.FLOAT, false, 0, 0);
+	
+	return { 
+		vBuffer: vBuffer, 
+		cBuffer: cBuffer, 
+		primitive: _gl.TRIANGLE_STRIP
+	};
+}
+
+var drawCube = function(cubePos, cubeSize, buffers)
+{
+	_gl.bindBuffer(_gl.ARRAY_BUFFER, buffers.vBuffer);
+	_gl.vertexAttribPointer(_currentShaderProgram.vertexPositionAttribute, buffers.vBuffer.itemSize, _gl.FLOAT, false, 0, 0);
+	
+	_gl.bindBuffer(_gl.ARRAY_BUFFER, buffers.cBuffer);
+	_gl.vertexAttribPointer(_currentShaderProgram.vertexColorAttribute, buffers.cBuffer.itemSize, _gl.FLOAT, false, 0, 0);
 
 	var size = cubeSize / 2;
 	mvPushMatrix();
@@ -271,7 +334,7 @@ var drawCube = function(cubePos, cubeSize, cubeFaceBuffers)
 			_gl.uniformMatrix4fv(_currentShaderProgram.pMatrixUniform, false, _pMatrix);
 			_gl.uniformMatrix4fv(_currentShaderProgram.mvMatrixUniform, false, _mvMatrix);
 	
-			_gl.drawArrays(_gl.LINE_STRIP, 0, cubeFaceBuffers.vBuffer.numItems);
+			_gl.drawArrays(buffers.primitive, 0, buffers.vBuffer.numItems);
 		mvPopMatrix();
 	mvPopMatrix();
 }
@@ -333,19 +396,45 @@ function generateSpace(limitX, limitY, limitZ)
 	var limY = Math.ceil(limitY / 2);
 	var limZ = Math.ceil(limitZ / 2);
 	
+	_space = [];
 	for(var x = -limX; x < limX; ++x)
 	{
+		var spaceY = [];
 		for(var y = -limY; y < limY; ++y)
 		{
+			var spaceZ = []
 			for(var z = -limZ; z < limZ; ++z)
 			{
 				if(Math.random() > 0.99)
 				{
-					_space.push({x: x, y: y, z: z});
+					spaceZ.push(OBSTACLE);
+				}
+				else
+				{
+					spaceZ.push(SPACE);
 				}
 			}
+			spaceY.push(spaceZ);
 		}
+		_space.push(spaceY);
 	}
+	
+	generateStartPoint(limitX, limitY, limitZ);
+}
+
+function generateStartPoint(limitX, limitY, limitZ)
+{
+	var randX;
+	var randY;
+	var randZ;
+	do
+	{
+		randX = Math.round(Math.random() * limitX);
+		randY = Math.round(Math.random() * limitY);
+		randZ = Math.round(Math.random() * limitZ);
+	}while(_space[randX][randY][randZ] != SPACE);
+	
+	_space[randX][randY][randZ] = START;
 }
 
 var drawScene = function()
@@ -362,10 +451,38 @@ var drawScene = function()
 	mat4.rotateY(_mvMatrix, _mvMatrix, _spaceRot.y);
 	mat4.rotateZ(_mvMatrix, _mvMatrix, _spaceRot.z);
 	
-	var standardCubeFaceBuffers = cubeFaceBuffers(1);
-	for(var i = 0; i < _space.length; i++)
+	var wireframeCubeBuffers = cubeFaceBuffers(1);
+	var startCubeBuffers = initStartCubeBuffers(1);
+	
+	var offsetX = Math.ceil(_space.length /  2);
+	
+	for(var x = 0; x < _space.length; ++x)
 	{
-		drawCube(_space[i], 1, standardCubeFaceBuffers);
+		var offsetY = Math.ceil(_space[x].length /  2);
+		for(var y = 0; y < _space[x].length; ++y)
+		{
+			var offsetZ = Math.ceil(_space[x][y].length /  2);
+			for(var z = 0; z < _space[x][y].length; ++z)
+			{
+				var type = _space[x][y][z];
+				if(type == OBSTACLE)
+				{
+					drawCube({
+						x:x - offsetX, 
+						y:y - offsetY, 
+						z:z - offsetZ
+					}, 1, wireframeCubeBuffers);
+				}
+				else if(type == START)
+				{
+					drawCube({
+						x:x - offsetX, 
+						y:y - offsetY, 
+						z:z - offsetZ
+					}, 1, startCubeBuffers);
+				}
+			}
+		}
 	}
 	mvPopMatrix();
 }
