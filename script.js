@@ -265,7 +265,7 @@ var cubeFaceBuffers = function(cubeSize)
 	};
 }
 
-var initStartCubeBuffers = function(cubeSize)
+var initCubeBuffers = function(cubeSize, cubeColor)
 {
 	var size = cubeSize / 2;
 	var vBuffer = _gl.createBuffer();
@@ -300,7 +300,7 @@ var initStartCubeBuffers = function(cubeSize)
 	_gl.bindBuffer(_gl.ARRAY_BUFFER, cBuffer);
 	colors = []
 	for (var i=0; i < vBuffer.numItems; i++) {
-		colors = colors.concat([0.8, 0.8, 0.8, 1.0]);
+		colors = colors.concat(cubeColor);
 	}
 	_gl.bufferData(_gl.ARRAY_BUFFER, new Float32Array(colors), _gl.STATIC_DRAW);
 	cBuffer.itemSize = 4;
@@ -317,6 +317,16 @@ var initStartCubeBuffers = function(cubeSize)
 		cBuffer: cBuffer, 
 		primitive: _gl.TRIANGLE_STRIP
 	};
+}
+
+var initStartCubeBuffers = function(cubeSize)
+{
+	return initCubeBuffers(cubeSize, [0.5, 0.8, 0.5, 1.0]);
+}
+
+var initGoalCubeBuffers = function(cubeSize)
+{
+	return initCubeBuffers(cubeSize, [0.8, 0.5, 0.5, 1.0]);
 }
 
 var drawCube = function(cubePos, cubeSize, buffers)
@@ -420,9 +430,22 @@ function generateSpace(limitX, limitY, limitZ)
 	}
 	
 	generateStartPoint(limitX, limitY, limitZ);
+	generateGoalPoint(limitX, limitY, limitZ);
 }
 
 function generateStartPoint(limitX, limitY, limitZ)
+{
+	var p = findEmptySpacePoint(limitX, limitY, limitZ);
+	_space[p.x][p.y][p.z] = START;
+}
+
+function generateGoalPoint(limitX, limitY, limitZ)
+{
+	var p = findEmptySpacePoint(limitX, limitY, limitZ);
+	_space[p.x][p.y][p.z] = GOAL;
+}
+
+function findEmptySpacePoint(limitX, limitY, limitZ)
 {
 	var randX;
 	var randY;
@@ -434,7 +457,7 @@ function generateStartPoint(limitX, limitY, limitZ)
 		randZ = Math.round(Math.random() * limitZ);
 	}while(_space[randX][randY][randZ] != SPACE);
 	
-	_space[randX][randY][randZ] = START;
+	return { x:randX, y:randY, z:randZ };
 }
 
 var drawScene = function()
@@ -453,6 +476,7 @@ var drawScene = function()
 	
 	var wireframeCubeBuffers = cubeFaceBuffers(1);
 	var startCubeBuffers = initStartCubeBuffers(1);
+	var goalCubeBuffers = initGoalCubeBuffers(1);
 	
 	var offsetX = Math.ceil(_space.length /  2);
 	
@@ -480,6 +504,14 @@ var drawScene = function()
 						y:y - offsetY, 
 						z:z - offsetZ
 					}, 1, startCubeBuffers);
+				}
+				else if(type == GOAL)
+				{
+					drawCube({
+						x:x - offsetX, 
+						y:y - offsetY, 
+						z:z - offsetZ
+					}, 1, goalCubeBuffers);
 				}
 			}
 		}
