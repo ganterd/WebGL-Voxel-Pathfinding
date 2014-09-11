@@ -45,6 +45,7 @@ var initSpace = function()
 {
 	_space = [];
 	generateSpace(30, 30, 30);
+	pathfinding.fnLoadAlgorithm("a_star");
 }
 
 var initCanvas = function()
@@ -483,6 +484,7 @@ var drawScene = function()
 	var wireframeCubeBuffers = cubeFaceBuffers(1);
 	var startCubeBuffers = initStartCubeBuffers(1);
 	var goalCubeBuffers = initGoalCubeBuffers(1);
+	var checkedCubeBuffers = initCubeBuffers(0.5, [1, 1, 1, 1.0]);
 	
 	var offsetX = Math.ceil(_space.length /  2);
 	
@@ -519,6 +521,14 @@ var drawScene = function()
 						z:z - offsetZ
 					}, 1, goalCubeBuffers);
 				}
+				else if(type == Pathfinding.CHECKED)
+				{
+					drawCube({
+						x:x - offsetX, 
+						y:y - offsetY, 
+						z:z - offsetZ
+					}, 0.5, checkedCubeBuffers);
+				}
 			}
 		}
 	}
@@ -530,5 +540,6 @@ var tick = function()
 	requestAnimFrame(tick);
 	animate();
 	updateInput();
+	pathfinding.fnTick();
 	drawScene();
 }
