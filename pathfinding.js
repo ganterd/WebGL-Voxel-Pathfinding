@@ -1,9 +1,9 @@
 var Pathfinding = function()
 {
 	this._graph = [];
-	this._pStart = {x:0, y:0, z:0};
-	this._pCurrent = {x:0, y:0, z:0};
-	this._pGoal = {x:0, y:0, z:0};
+	this._pStart = null;
+	this._pCurrent = null;
+	this._pGoal = null;
 	this._currentAlgorithmFn = null;
 	this._status = Pathfinding.NOT_RUNNING;
 };
@@ -69,13 +69,21 @@ Pathfinding.prototype.fnLoadAlgorithm = function(name)
 
 Pathfinding.prototype.fnInitSearch = function()
 {
-	if(this._currentAlgorithmFn)
+	this._status = Pathfinding.NOT_RUNNING;
+	
+	if(this._currentAlgorithmFn == null)
+		console.warn("Pathfinding: Search wasn't started because no algorithm is loaded");
+	else if(this._graph == null)
+		console.warn("Pathfinding: Search wasn't started because no graph was loaded");
+	else if(this._pStart == null)
+		console.warn("Pathfinding: Search wasn't started because start point wasn't defined");
+	else if(this._pGoal == null)
+		console.warn("Pathfinding: Search wasn't started because goal point wasn't definted");
+	else
 	{
 		this._currentAlgorithmFn.init(this);
 		this._status = Pathfinding.SEARCHING;
-		return;
 	}
-	this._status = Pathfinding.NOT_RUNNING;
 }
 
 Pathfinding.prototype.fnTick = function()

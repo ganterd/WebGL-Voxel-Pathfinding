@@ -69,6 +69,7 @@ var initBuffers = function()
 var initSpace = function()
 {
 	_space = [];
+	pathfinding = new Pathfinding();
 	generateSpace(_spaceLimits.x, _spaceLimits.y, _spaceLimits.z);
 	pathfinding.fnLoadAlgorithm("a_star");
 	pathfinding.fnInitSearch();
@@ -433,6 +434,7 @@ function generateSpace(limitX, limitY, limitZ)
 	var limZ = Math.ceil(limitZ / 2);
 	
 	_space = [];
+	var spaces = [];
 	for(var x = 0; x < limitX; ++x)
 	{
 		var spaceY = [];
@@ -448,6 +450,7 @@ function generateSpace(limitX, limitY, limitZ)
 				else
 				{
 					spaceZ.push(SPACE);
+					spaces.push({ x:x, y:y, z:z });
 				}
 			}
 			spaceY.push(spaceZ);
@@ -457,37 +460,39 @@ function generateSpace(limitX, limitY, limitZ)
 	
 	pathfinding.fnSetGraph(_space);
 	
-	generateStartPoint(limitX, limitY, limitZ);
-	generateGoalPoint(limitX, limitY, limitZ);
+	if(spaces.length >= 2)
+	{
+		generateStartPoint(spaces);
+		generateGoalPoint(spaces);
+	}
+	else
+	{
+		alert("Not enough empty spaces for start and goal point. Try increasing dimensions or decrease fill percent");
+	}
 }
 
-function generateStartPoint(limitX, limitY, limitZ)
+function generateStartPoint(spaces)
 {
-	var p = findEmptySpacePoint(limitX, limitY, limitZ);
+	var p = pickEmptySpacePoint(spaces);
 	pathfinding.fnSetStartPosition(p);
 	_space[p.x][p.y][p.z] = START;
 }
 
-function generateGoalPoint(limitX, limitY, limitZ)
+function generateGoalPoint(spaces)
 {
-	var p = findEmptySpacePoint(limitX, limitY, limitZ);
+	var p = pickEmptySpacePoint(spaces);
 	pathfinding.fnSetGoalPosition(p);
 	_space[p.x][p.y][p.z] = GOAL;
 }
 
-function findEmptySpacePoint(limitX, limitY, limitZ)
+function pickEmptySpacePoint(spaces)
 {
-	var randX;
-	var randY;
-	var randZ;
-	do
-	{
-		randX = Math.floor(Math.random() * limitX);
-		randY = Math.floor(Math.random() * limitY);
-		randZ = Math.floor(Math.random() * limitZ);
-	}while(_space[randX][randY][randZ] != SPACE);
-	
-	return { x:randX, y:randY, z:randZ };
+	if(spaces.length == 0)
+		console.error("No empty spaces to pick");
+	var i = Math.floor(Math.random() * spaces.length);
+	var space = spaces[i];
+	spaces.splice(i, 1);
+	return space;
 }
 
 var drawScene = function()
