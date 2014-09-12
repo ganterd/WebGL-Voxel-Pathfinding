@@ -21,6 +21,17 @@ var _spaceFillPercent = 2;
 var _spaceRot = { x:0, y:0, z:0 };
 var _spaceRotPerSecond = { x:0, y:0.1, z:0 };
 
+var _wireframeObstacleCubeBuffers = null;
+var _solidObstacleCubeBuffers = null;
+var _wireframeSearchedCubeBuffers = null;
+var _solidPathCubeBuffers = null;
+var _solidStartCubeBuffers = null;
+var _solidGoalCubeBuffers = null;
+
+var _wireframeObstacles = false;
+
+var _cubeSize = 1;
+
 var SPACE = Pathfinding.SPACE;
 var OBSTACLE = Pathfinding.OBSTACLE;
 var START = Pathfinding.START;
@@ -42,6 +53,17 @@ var init = function()
 	initGL();
 	initShaders();
 	initSpace();
+	initBuffers();
+}
+
+var initBuffers = function()
+{
+	_wireframeObstacleCubeBuffers = initWireframeCubeBuffers([0.5, 0.5, 0.5, 1.0]);
+	_solidObstacleCubeBuffers = initSolidCubeBuffers([0.5, 0.5, 0.5, 1.0]);
+	_wireframeSearchedCubeBuffers = initWireframeCubeBuffers([0.8, 0.8, 0.8, 1.0]);
+	_solidPathCubeBuffers = initSolidCubeBuffers([1, 1, 1, 1.0]);
+	_solidStartCubeBuffers = initSolidCubeBuffers([0.6, 0.6, 1, 1.0]);
+	_solidGoalCubeBuffers = initSolidCubeBuffers([1, 0.6, 0.6, 1.0]);
 }
 
 var initSpace = function()
@@ -215,11 +237,11 @@ function handleKeyUp(event)
 	_keysDown[event.keyCode] = false;
 }
 
-var cubeFaceBuffers = function(cubeSize, cubeColor)
+var initWireframeCubeBuffers = function(cubeColor)
 {
 	if(cubeColor == undefined)
 		cubeColor = [0.5, 0.5, 0.5, 1.0];
-	var size = cubeSize / 2;
+	var size = _cubeSize / 2;
 	var squareVertexPositionBuffer = _gl.createBuffer();
 	_gl.bindBuffer(_gl.ARRAY_BUFFER, squareVertexPositionBuffer);
 	vertices = [
@@ -274,9 +296,9 @@ var cubeFaceBuffers = function(cubeSize, cubeColor)
 	};
 }
 
-var initCubeBuffers = function(cubeSize, cubeColor)
+var initSolidCubeBuffers = function(cubeColor)
 {
-	var size = cubeSize / 2;
+	var size = _cubeSize / 2;
 	var vBuffer = _gl.createBuffer();
 	_gl.bindBuffer(_gl.ARRAY_BUFFER, vBuffer);
 	vertices = [
@@ -328,17 +350,7 @@ var initCubeBuffers = function(cubeSize, cubeColor)
 	};
 }
 
-var initStartCubeBuffers = function(cubeSize)
-{
-	return initCubeBuffers(cubeSize, [0.5, 0.8, 0.5, 1.0]);
-}
-
-var initGoalCubeBuffers = function(cubeSize)
-{
-	return initCubeBuffers(cubeSize, [0.8, 0.5, 0.5, 1.0]);
-}
-
-var drawCube = function(cubePos, cubeSize, buffers)
+var drawCube = function(cubePos, buffers)
 {
 	_gl.bindBuffer(_gl.ARRAY_BUFFER, buffers.vBuffer);
 	_gl.vertexAttribPointer(_currentShaderProgram.vertexPositionAttribute, buffers.vBuffer.itemSize, _gl.FLOAT, false, 0, 0);
@@ -346,9 +358,9 @@ var drawCube = function(cubePos, cubeSize, buffers)
 	_gl.bindBuffer(_gl.ARRAY_BUFFER, buffers.cBuffer);
 	_gl.vertexAttribPointer(_currentShaderProgram.vertexColorAttribute, buffers.cBuffer.itemSize, _gl.FLOAT, false, 0, 0);
 
-	var size = cubeSize / 2;
+	var size = _cubeSize / 2;
 	mvPushMatrix();
-		mat4.translate(_mvMatrix, _mvMatrix, [cubePos.x * cubeSize, cubePos.y * cubeSize, cubePos.z * cubeSize]);
+		mat4.translate(_mvMatrix, _mvMatrix, [cubePos.x * _cubeSize, cubePos.y * _cubeSize, cubePos.z * _cubeSize]);
 		mvPushMatrix();
 			_gl.uniformMatrix4fv(_currentShaderProgram.pMatrixUniform, false, _pMatrix);
 			_gl.uniformMatrix4fv(_currentShaderProgram.mvMatrixUniform, false, _mvMatrix);
@@ -487,13 +499,6 @@ var drawScene = function()
 	mat4.rotateY(_mvMatrix, _mvMatrix, _spaceRot.y);
 	mat4.rotateZ(_mvMatrix, _mvMatrix, _spaceRot.z);
 	
-	//var wireframeCubeBuffers = cubeFaceBuffers(1);
-	var wireframeCubeBuffers = initCubeBuffers(1, [0.5, 0.5, 0.5, 1.0]);
-	var startCubeBuffers = initStartCubeBuffers(1);
-	var goalCubeBuffers = initGoalCubeBuffers(1);
-	var checkedCubeBuffers = cubeFaceBuffers(1, [0.8, 0.8, 0.8, 1.0]);
-	var pathCubeBuffers = initCubeBuffers(1, [1, 1, 1, 1.0]);
-	
 	var offsetX = Math.ceil(_space.length /  2);
 	
 	for(var x = 0; x < _space.length; ++x)
@@ -511,7 +516,7 @@ var drawScene = function()
 						x:x - offsetX, 
 						y:y - offsetY, 
 						z:z - offsetZ
-					}, 1, wireframeCubeBuffers);
+					}, _wireframeObstacles ? _wireframeObstacleCubeBuffers : _solidObstacleCubeBuffers);
 				}
 				else if(type == START)
 				{
@@ -519,7 +524,7 @@ var drawScene = function()
 						x:x - offsetX, 
 						y:y - offsetY, 
 						z:z - offsetZ
-					}, 1, startCubeBuffers);
+					}, _solidStartCubeBuffers);
 				}
 				else if(type == GOAL)
 				{
@@ -527,7 +532,7 @@ var drawScene = function()
 						x:x - offsetX, 
 						y:y - offsetY, 
 						z:z - offsetZ
-					}, 1, goalCubeBuffers);
+					}, _solidGoalCubeBuffers);
 				}
 				else if(type == Pathfinding.CHECKED)
 				{
@@ -535,7 +540,7 @@ var drawScene = function()
 						x:x - offsetX, 
 						y:y - offsetY, 
 						z:z - offsetZ
-					}, 1, checkedCubeBuffers);
+					}, _wireframeSearchedCubeBuffers);
 				}
 				else if(type == PATH)
 				{
@@ -543,7 +548,7 @@ var drawScene = function()
 						x:x - offsetX, 
 						y:y - offsetY, 
 						z:z - offsetZ
-					}, 1, pathCubeBuffers);
+					}, _solidPathCubeBuffers);
 				}
 			}
 		}
