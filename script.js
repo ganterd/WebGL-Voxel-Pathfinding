@@ -25,6 +25,7 @@ var SPACE = Pathfinding.SPACE;
 var OBSTACLE = Pathfinding.OBSTACLE;
 var START = Pathfinding.START;
 var GOAL = Pathfinding.GOAL;
+var PATH = 5;
 
 var pathfinding = new Pathfinding();
 
@@ -490,7 +491,8 @@ var drawScene = function()
 	var wireframeCubeBuffers = initCubeBuffers(1, [0.5, 0.5, 0.5, 1.0]);
 	var startCubeBuffers = initStartCubeBuffers(1);
 	var goalCubeBuffers = initGoalCubeBuffers(1);
-	var checkedCubeBuffers = cubeFaceBuffers(1, [1, 1, 1, 1.0])
+	var checkedCubeBuffers = cubeFaceBuffers(1, [0.8, 0.8, 0.8, 1.0]);
+	var pathCubeBuffers = initCubeBuffers(1, [1, 1, 1, 1.0]);
 	
 	var offsetX = Math.ceil(_space.length /  2);
 	
@@ -535,6 +537,14 @@ var drawScene = function()
 						z:z - offsetZ
 					}, 1, checkedCubeBuffers);
 				}
+				else if(type == PATH)
+				{
+					drawCube({
+						x:x - offsetX, 
+						y:y - offsetY, 
+						z:z - offsetZ
+					}, 1, pathCubeBuffers);
+				}
 			}
 		}
 	}
@@ -549,10 +559,20 @@ var tick = function()
 	
 	if(pathfinding._status == Pathfinding.FOUND)
 	{
+		
 	}
 	else
 	{
-		pathfinding.fnTick();
+		var status = pathfinding.fnTick();
+		if(status.status == Pathfinding.FOUND && status.path)
+		{
+			var path = status.path;
+			for(var i = 0; i < path.length; ++i)
+			{
+				var p = path[i];
+				_space[p.x][p.y][p.z] = PATH;
+			}
+		} 
 	}
 	
 	drawScene();

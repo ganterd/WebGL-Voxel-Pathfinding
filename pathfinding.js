@@ -83,9 +83,9 @@ Pathfinding.prototype.fnTick = function()
 	if(this._currentAlgorithmFn && this._status == Pathfinding.SEARCHING)
 	{
 		this._status = this._currentAlgorithmFn.tick(this);
-		if(status == Pathfinding.FOUND)
+		if(this._status == Pathfinding.FOUND)
 		{
-			var path = this._currentAlgorithmFn.path();
+			var path = this._currentAlgorithmFn.path;
 			return { status:this._status, path:path };
 		}
 		return { status:this._status };

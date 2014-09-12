@@ -5,6 +5,8 @@ var Pathfinding_Algorithm_A_Star = function()
 	var closedset = null;
 	var g_scores = null;
 	var f_scores = null;
+	var camefrom = null;
+	var path = null;
 };
 
 Pathfinding_Algorithm_A_Star.prototype.distance = function(p1, p2)
@@ -30,29 +32,35 @@ Pathfinding_Algorithm_A_Star.prototype.init = function(finder)
 	this.closedset = [];
 	this.g_scores = [];
 	this.f_scores = [];
+	this.camefrom = [];
 	for(var x = 0; x < finder._graph.length; ++x)
 	{
-		var closedsetY = []
-		var g_scoresY = []
-		var f_scoresY = []
+		var closedsetY = [];
+		var g_scoresY = [];
+		var f_scoresY = [];
+		var camefromY = [];
 		for(var y = 0; y < finder._graph[x].length; ++y)
 		{
-			var closedsetZ = []
+			var closedsetZ = [];
 			var g_scoresZ = [];
 			var f_scoresZ = [];
+			var camefromZ = [];
 			for(var z = 0; z < finder._graph[x][y].length; ++z)
 			{
 				closedsetZ.push(false);
 				g_scoresZ.push(null);
 				f_scoresZ.push(null);
+				camefromZ.push(null);
 			}
 			closedsetY.push(closedsetZ);
 			g_scoresY.push(g_scoresZ);
 			f_scoresY.push(f_scoresZ);
+			camefromY.push(camefromZ);
 		}
 		this.closedset.push(closedsetY);
 		this.g_scores.push(g_scoresY);
 		this.f_scores.push(f_scoresY);
+		this.camefrom.push(camefromY);
 	}
 	
 	var p = finder._pStart
@@ -93,6 +101,7 @@ Pathfinding_Algorithm_A_Star.prototype.tick = function(finder)
 	if(p.x == finder._pGoal.x && p.y == finder._pGoal.y && p.z == finder._pGoal.z)
 	{
 		console.debug("A* Search: Found goal");
+		this.reconstructPath(p);
 		return Pathfinding.FOUND;
 	}
 	
@@ -109,6 +118,7 @@ Pathfinding_Algorithm_A_Star.prototype.tick = function(finder)
 			var n_g_score = this.g_scores[n.x][n.y][n.z];
 			if(n_g_score == null || tentative_g_score < n_g_score)
 			{
+				this.camefrom[n.x][n.y][n.z] = { x:p.x, y:p.y, z:p.z };
 				if(n_g_score == null)
 					this.openset.push({x:n.x, y:n.y, z:n.z});
 				this.g_scores[n.x][n.y][n.z] = tentative_g_score;
@@ -123,8 +133,19 @@ Pathfinding_Algorithm_A_Star.prototype.tick = function(finder)
 	return Pathfinding.SEARCHING;
 }
 
-Pathfinding_Algorithm_A_Star.prototype.path = function()
+Pathfinding_Algorithm_A_Star.prototype.reconstructPath = function(p)
 {
+	console.debug("A* Search: Reconstructing Path");
+	this.path = [];
+
+	var step = p;	
+	do
+	{
+		step = this.camefrom[step.x][step.y][step.z];
+		if(step != null)
+			this.path.unshift(step);
+	}
+	while(step != null);
 }
 
 Pathfinding.fnAddAlgorithm('a_star', new Pathfinding_Algorithm_A_Star());
