@@ -112,6 +112,11 @@ var initShaders = function()
 	_currentShaderProgram = _shaderPrograms[0];
 }
 
+var wireframeObstacles = function(enable)
+{
+	_wireframeObstacles = enable;
+}
+
 var getShader = function(shaderID)
 {
 	var shaderScript = document.getElementById(shaderID);

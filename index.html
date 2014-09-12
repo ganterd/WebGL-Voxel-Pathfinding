@@ -166,12 +166,20 @@
 					</td>
 				</tr>
 				<tr>
-					<td width="100">Fill Percent:</td>
+					<td width="200">Fill Percent:</td>
 					<td width="30" id="fill_percent">
 						5
 					</td>
 					<td width="300">
 						<div id="slider_fill" style="width: 250px; margin: 10px"></div>
+					</td>
+				</tr>
+				<tr>
+					<td width="100">Wireframe Obstacles:</td>
+					<td width="30" id="fill_percent">
+						<input id="wireframe_obstacles" type="checkbox" name="wireframe_obstacles" onclick="wireframeObstacles($('#wireframe_obstacles').prop('checked'));">
+					</td>
+					<td width="300">
 					</td>
 				</tr>
 			</table>
